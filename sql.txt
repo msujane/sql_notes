@@ -1,0 +1,507 @@
+--1--
+select concat(first_name,concat(' ',last_name)) as full_name from employees where department='Clothing';
+
+--2--
+select last_name,email,salary from employees where salary not BETWEEN 50000 and 150000;
+
+----3---
+select employee_id,first_name from employees where email like '%.com';
+
+---4---
+
+SELECT
+    employee_id,
+    CONCAT(first_name, CONCAT(' ', last_name)) AS full_name,
+    gender
+FROM
+    employees
+WHERE
+    gender = 'M'
+    AND first_name LIKE 'M%'
+    AND first_name LIKE '%on'
+ORDER BY
+    employee_id;
+
+
+---5---
+select employee_id,CONCAT(first_name, CONCAT(' ', last_name)) AS full_name
+FROM
+    employees
+WHERE hire_date>(select hire_date from employees where first_name='Cortie' and last_name='Ambrosini');
+
+----6---
+--Select ID, first_name, and email id of least and second-least experienced employee in the organization.
+select employee_id,first_name,email from employees order by hire_date desc 
+fetch first 2 rows only;
+
+---7----
+select employee_id,CONCAT(first_name, CONCAT(' ', last_name)) AS full_name,hire_date
+FROM employees where EXTRACT(YEAR FROM hire_date) = 2013;
+
+----8---
+select employee_id,last_name,ceil(MONTHS_BETWEEN(SYSDATE, hire_date)) AS months_worked from employees order by months_worked;
+
+---9----
+select to_char(to_date('2018-12-01','yyyy-mm-dd'),'day') as day from dual;
+
+---10--
+SELECT 'Employee ' || e.first_name || ' ' || e.last_name || ' earns $' || e.salary || ' monthly but wants $' || (e.salary * 3) AS Average_Expected_Salaries
+FROM
+    employees e;
+
+---11---
+select min(salary) as min_salary,max(salary) as max_salary,avg(salary) as avg_salary from employees;
+
+---12---
+select department,min(salary) as min_salary,max(salary) as max_salary,avg(salary) as avg_salary from employees group by department;
+
+---13---
+select count(employee_id) as count from employees group by department;
+
+---14---
+select count(*),to_char(hire_date,'yyyy') as year_wise from employees where hire_date BETWEEN DATE '2004-01-01' AND DATE '2016-12-31' group by year_wise order by year_wise;
+
+
+----15---
+select employee_id,CONCAT(first_name, CONCAT(' ', last_name)) AS full_name,department from employees where 
+salary in (select max(salary) from employees group by department) or 
+salary in (select min(salary) from employees group by department) order by department ;
+
+----16----
+select employee_id,first_name,hire_date,salary from employees where salary=(select salary from employees where first_name='Lanny' and last_name='Comolli');
+----17---
+select employee_id,first_name,hire_date,salary,department from employees where salary >(select avg(salary) from employees);
+----18---
+select employee_id,concat(first_name,concat(' ',last_name)) as full_name,hire_date,salary,
+department from employees e where salary <(select avg(salary) from employees where department=e.department)order by salary;
+
+
+---consider employees,departments,region
+---19---
+select e.Employee_id,concat(e.first_name,concat(' ',e.last_name)),d.department,d.division from employees e
+join departments d on e.department=d.department;
+
+
+---20----
+select e.Employee_Id,concat(e.first_name,concat(' ',e.last_name)), e.Department, d.Division,r.Region,r.Country
+from employees e join departments d on e.department=d.department join regions r on e.REGION_ID=r.region_id;
+
+---21----
+ 
+select Employee_Id,concat(e.first_name,concat(' ',e.last_name)),d.department,d.division from employees
+e join departments d on e.department=d.department join regions r on e.region_id=r.region_id where r.region='Central Asia'
+or r.region='East Asia';
+
+--22--
+SELECT
+    e.last_name,
+    FLOOR(MONTHS_BETWEEN(SYSDATE, e.hire_date) / 12) AS tenure_years
+FROM
+    employees e
+JOIN
+    departments d ON e.department = d.department
+WHERE
+    d.division = 'Home';
+
+---23--
+select d.department,d.division,count(e.employee_id),round(avg(e.salary),2) as salary1 
+from employees e join departments d on e.department=d.department 
+group by d.department 
+order by salary1 desc;
+
+---24---
+---Display Emp_Id, Full name, hire date, department, and division for all employees who have same division
+-- as Lanny Comolli where 'Lanny' and 'Comolli' are respectively the first_name and last_name of an employee.
+select e.employee_id,concat(e.first_name,concat(' ',e.last_name)),e.hire_date,d.Department,d.Division
+from employees e join departments d on e.department=d.department where d.division=(select 
+d2.division from employees e2 join departments d2 
+
+on e2.DEPARTMENT=d2.department
+where 
+e2.first_name='Lanny' and 
+e2.last_name='Comolli');
+
+---25----
+SELECT 
+    d.department,
+    d.division
+FROM 
+    employees e
+JOIN 
+    departments d ON e.department = d.department
+GROUP BY 
+    d.department, d.division
+HAVING 
+    SUM(e.salary) > (SELECT SUM(e2.salary)/10 FROM employees e2);
+
+
+---26---
+
+
+select e.employee_id,e.first_name,e.salary from employees e join 
+departments d on e.department=d.department
+WHERE 
+    (d.division, e.region_id) IN (SELECT d2.division, e2.region_id FROM employees e2 JOIN 
+    departments d2 ON e2.department = d2.department WHERE 
+    EXTRACT(MONTH FROM e2.hire_date) = 3 AND EXTRACT(YEAR FROM e2.hire_date) = 2015
+    )
+ORDER BY 
+    e.salary;
+
+
+---27---
+SELECT 
+    d.department,
+    d.division,
+    COUNT(e.employee_id) AS count_employee
+FROM 
+    employees e
+JOIN 
+    departments d ON d.department = e.department
+GROUP BY 
+    d.department, d.division
+HAVING 
+    COUNT(e.employee_id) = (
+        SELECT MAX(emp_count) FROM (
+            SELECT COUNT(employee_id) AS emp_count
+            FROM employees
+            GROUP BY department
+        ) sub1
+    )
+    OR COUNT(e.employee_id) = (
+        SELECT MIN(emp_count) FROM (
+            SELECT COUNT(employee_id) AS emp_count
+            FROM employees
+            GROUP BY department
+        ) sub2
+    )
+    OR COUNT(e.employee_id) < 30
+ORDER BY 
+    count_employee DESC;
+
+
+----28----
+describe students;
+describe professors;
+
+SELECT 
+    student_name
+FROM 
+    students
+WHERE 
+    (student_name LIKE '%ae%' OR student_name LIKE '%ph%')
+    AND age <> 19;
+
+--29--
+SELECT 
+    student_name, 
+    age
+FROM 
+    students
+ORDER BY 
+    age DESC
+FETCH FIRST 4 ROWS ONLY; 
+
+---30
+SELECT student_no,student_name,age FROM students
+WHERE 
+    (age <= 20 AND (student_no BETWEEN 3 AND 5 OR student_no = 7))
+    OR (age > 20 AND student_no >= 4);
+
+---31--
+SELECT 
+    'It is ' || CASE WHEN salary > 95000 THEN 'true' ELSE 'false' END || 
+    ' that professor ' || last_name || ' is highly paid' AS result
+FROM 
+    professors;
+
+
+---32---
+describe fruit_imports;
+
+select season from FRUIT_IMPORTS group by season having count(distinct name)=3 or count(distinct name)=4;
+
+---33---
+select state from fruit_imports GROUP BY state
+HAVING SUM(supply * cost_per_unit) = (SELECT MAX(total_cost) 
+FROM 
+(SELECT SUM(supply * cost_per_unit) AS total_cost FROM fruit_imports GROUP BY state));
+
+
+---34--
+select name,SUM(supply * cost_per_unit) as total_cost,
+case when SUM(supply * cost_per_unit)<20000 then 'low' 
+ when SUM(supply * cost_per_unit) between 20000 and 50000 then 'enough'
+else 'full' end as category from fruit_imports group by name;
+
+---35---
+----student,student_enrollment,course
+SELECT student_name
+FROM students
+WHERE student_no IN (
+    SELECT student_no
+    FROM student_enrollment
+    WHERE course_no IN (
+        SELECT course_no FROM courses WHERE course_title IN ('Physics', 'US History')
+    )
+    GROUP BY student_no
+    HAVING COUNT(DISTINCT course_no) = 2
+); 
+
+---36--
+SELECT student_name
+FROM students
+WHERE student_no IN (
+    SELECT student_no
+    FROM student_enrollment
+    GROUP BY student_no
+    HAVING COUNT(DISTINCT course_no) = (
+        SELECT MAX(course_count)
+        FROM (
+            SELECT COUNT(DISTINCT course_no) AS course_count
+            FROM student_enrollment
+            GROUP BY student_no
+        ) 
+    )
+);
+
+---37---
+SELECT 
+    s.student_name,
+    c.course_title
+FROM 
+    students s
+left JOIN 
+    student_enrollment se ON s.student_no = se.student_no
+left JOIN 
+    courses c ON se.course_no = c.course_no;
+
+----38---
+
+SELECT DISTINCT s.student_name,c.course_title,p.professor_name
+FROM students s JOIN student_enrollment se ON s.student_no = se.student_no
+JOIN
+courses c ON se.course_no = c.course_no
+JOIN
+professors p ON c.professor_no = p.professor_no;
+
+
+---39
+ALTER TABLE employees ADD comm NUMBER(8,2);
+
+---40---
+UPDATE employees SET comm = 500 WHERE department = 'Sales';
+UPDATE employees SET comm = 300 WHERE department = 'HR';
+UPDATE employees SET comm = 200 WHERE department = 'IT';
+
+----41---
+SELECT department,gender,SUM(salary) AS total_salary,SUM(comm) AS total_comm
+FROM employees
+GROUP BY ROLLUP (department, gender);
+
+
+--42--
+
+CREATE TABLE Reservation (
+    ReservationID NUMBER PRIMARY KEY,
+    EmployeeID NUMBER NOT NULL,
+    RoomID NUMBER NOT NULL,
+    EventTitle VARCHAR2(255) NOT NULL,
+    EventDescription VARCHAR2(1000),
+    NumberOfAttendees NUMBER,
+    StartDateTime DATE NOT NULL,
+    EndDateTime DATE NOT NULL,
+    Accessories VARCHAR2(255),
+    ApprovalReceipt VARCHAR2(255),
+    SPOCs VARCHAR2(255),
+    Status VARCHAR2(50) CHECK (Status IN ('Tentative', 'Confirmed', 'Cancelled'))
+);
+
+INSERT INTO Reservation (
+    ReservationID, EmployeeID, RoomID, EventTitle, EventDescription, NumberOfAttendees, StartDateTime, EndDateTime, Accessories, ApprovalReceipt, SPOCs, Status
+) VALUES (
+    1, 1, 101, 'Team Meeting', 'Discuss project updates', 15, TO_DATE('2023-11-01 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2023-11-01 12:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'Projector', 'Approved', 'John Doe', 'Tentative'
+);
+
+INSERT INTO Reservation (
+    ReservationID, EmployeeID, RoomID, EventTitle, EventDescription, NumberOfAttendees, StartDateTime, EndDateTime, Accessories, ApprovalReceipt, SPOCs, Status
+) VALUES (
+    2, 2, 102, 'Client Call', 'Quarterly business review', 8, TO_DATE('2023-11-02 09:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2023-11-02 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'Speakerphone', 'Approved', 'Jane Smith', 'Confirmed'
+);
+
+INSERT INTO Reservation (
+    ReservationID, EmployeeID, RoomID, EventTitle, EventDescription, NumberOfAttendees, StartDateTime, EndDateTime, Accessories, ApprovalReceipt, SPOCs, Status
+) VALUES (
+    3, 3, 103, 'Brainstorming Session', 'New product ideas', 12, TO_DATE('2023-11-03 14:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2023-11-03 16:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'Whiteboard', 'Pending', 'Alice Lee', 'Tentative'
+);
+
+INSERT INTO Reservation (
+    ReservationID, EmployeeID, RoomID, EventTitle, EventDescription, NumberOfAttendees, StartDateTime, EndDateTime, Accessories, ApprovalReceipt, SPOCs, Status
+) VALUES (
+    4, 4, 104, 'Training', 'Security awareness training', 20, TO_DATE('2023-11-04 11:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2023-11-04 13:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'Projector, Microphone', 'Approved', 'Bob Brown', 'Confirmed'
+);
+
+INSERT INTO Reservation (
+    ReservationID, EmployeeID, RoomID, EventTitle, EventDescription, NumberOfAttendees, StartDateTime, EndDateTime, Accessories, ApprovalReceipt, SPOCs, Status
+) VALUES (
+    5, 5, 105, 'Training', 'awareness training', 20, TO_DATE('2023-11-05 11:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_DATE('2023-11-05 13:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'Projector, Microphone', 'Approved', 'Bob Brown1', 'Cancelled'
+);
+select * from reservation;
+
+select * from reservation where EMPLOYEEID=1;
+
+---43---
+SELECT
+    COUNT(CASE WHEN UPPER(status) = 'CONFIRMED' THEN 1 END) AS confirmed,
+    COUNT(CASE WHEN UPPER(status) = 'CANCELLED' THEN 1 END) AS cancelled
+FROM
+    reservation
+WHERE
+    EXTRACT(MONTH FROM StartDateTime) = 11;
+
+
+----44---
+select employeeid,count(reservationID)
+from reservation group by employeeid order by employeeid;
+
+--45--
+
+
+CREATE TABLE empdetails (
+    emp_id INT PRIMARY KEY,
+    first_name VARCHAR(50),
+    gender CHAR(1),
+    dep_id INT
+);
+ 
+
+CREATE TABLE empsales (
+    emp_id INT,
+    client_id INT,
+    sales INT,
+    PRIMARY KEY (emp_id, client_id,sales)
+);
+ 
+CREATE TABLE department (
+    dep_id INT PRIMARY KEY,
+    dep_name VARCHAR(50)
+);
+ 
+CREATE TABLE client (
+    client_id INT PRIMARY KEY,
+    client_name VARCHAR(50)
+);
+select * from empdetails;
+
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(21, 'Josh', 'M', 1);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(22, 'Nik', 'M', 2);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(23, 'Hayley', 'F', 1);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(24, 'Thon', 'M', 1);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(25, 'Mike', 'M', 2);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(26, 'Kate', 'F', 1);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(27, 'Johny', 'F', 2);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(28, 'Will', 'M', 2);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(29, 'Minaj', 'F', 1);
+ 
+INSERT INTO empdetails (emp_id, first_name, gender, dep_id) VALUES
+(30, 'Corie', 'F', 2);
+ 
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (21, 1001, 27000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (21, 1001, 34000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (27, 1001, 12000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (23, 1001, 54000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (24, 1001, 19000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (27, 1001, 32000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (30, 1001, 21000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (28, 1002, 33000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (29, 1002, 26000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (30, 1002, 17000);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (30, 1002, 12700);
+INSERT INTO empsales (emp_id, client_id, sales) VALUES (28, 1002, 10000);
+ 
+
+ 
+INSERT INTO department (dep_id, dep_name) VALUES (1, 'Analytics');
+INSERT INTO department (dep_id, dep_name) VALUES (2, 'Content');
+ 
+INSERT INTO client (client_id, client_name) VALUES (1001, 'Lobster');
+INSERT INTO client (client_id, client_name) VALUES (1002, 'Gatebook');
+
+
+---4 activity---
+with emp_sales as(
+   select 
+   ed.dep_id,
+   es.emp_id,
+   sum(es.sales) as total_sales
+   from empsales es
+   join empdetails ed on es.emp_id=ed.emp_id
+   group by ed.dep_id,es.emp_id 
+),
+best_emp as(
+    select dep_id,emp_id from(
+      select dep_id,emp_id,total_sales,
+      RANK() over(partition by dep_id order by total_sales desc) as rnk
+      from emp_sales
+    )t
+    where rnk=1
+),
+client_sales as(
+    select ed.dep_id,es.client_id,sum(es.sales) as total_client
+    from empsales es 
+    join empdetails ed 
+    on es.emp_id=ed.emp_id group by ed.dep_id,es.client_id 
+),
+best_client as(
+    select dep_id,client_id from(
+        select dep_id,client_id,total_client,rank() over (partition by dep_id order by total_client desc) as rnk
+    from client_sales)t
+    where rnk=1
+)
+
+SELECT b.dep_id, b.emp_id AS best_emp_id, c.client_id AS best_client_id
+FROM best_emp b
+JOIN best_client c ON b.dep_id = c.dep_id
+ORDER BY b.dep_id;
+
+
+select distinct department_name,
+first_value(first_name) over(partition by department_name order by salary desc) as first_name,
+first_value(job_title) over(partition by department_name order by salary desc) as job_title,
+first_value(salary) over(partition by department_name order by salary desc) as max_salary
+from employees e 
+join departments d 
+on e.department_id=d.department_id
+join jobs j on e.job_id=j.job_id;
+
+
+select department_id,
+listagg(first_name,',') within group (order by first_name) as employees
+from employees group by department_id;
+
+
+select department_id,
+min(salary) keep(dense_rank first order by commision_pct) as worst,
+max(salary) keep(dense_rank last order by commision_pct) as best
+from employees group by department_id order by department_id;
+
+
+
+
